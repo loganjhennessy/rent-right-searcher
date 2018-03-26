@@ -1,5 +1,6 @@
-# Rent Right Scraper
+# Rent Right Searcher
 
-Rent right scraper is a Kubernetes CronJob and Deployment that work together to get the data necessary for Rent Right.
+Rent right searcher is a Kubernetes CronJob written in Python that finds rental listings to scrape.
 
-The CronJob runs on a regular schedule, publishing jobs to a PubSub topic. The Deployment listens on a subscription to that topic and performs a scraping job for each message, placing the data in Google Datastore, where it can be used by downstream applications.
+The CronJob runs on a regular schedule, publishing jobs to a PubSub topic. Downstream, another micro-service listens on
+a subscription to the PubSub topic and does the scraping.
