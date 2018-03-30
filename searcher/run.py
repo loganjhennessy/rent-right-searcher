@@ -7,7 +7,7 @@ import requests
 # import time
 
 
-with open("/opt/searcher/config.json", "r") as f:
+with open("/opt/searcher/config/config.json", "r") as f:
     config = json.loads(f.read())
 
 cities = config["cities"]
