@@ -40,3 +40,7 @@ coverage.xml
 .venv
 venv/
 ENV/
+
+# Credentials
+setup.sh
+zip-code-key.txt

@@ -32,7 +32,9 @@ class ZipCodeRequest(object):
         self.logger = get_configured_logger(__name__)
         self.state = state
 
-        self.logger.info('ZipCodeRequest initialized')
+        self.logger.info('ZipCodeRequest initialized for {}, {}.'.format(
+            self.city[0].upper() + self.city[1:], self.state.upper())
+        )
 
     def execute(self):
         """Uses attributes to make a Zip Code API query.
@@ -41,7 +43,7 @@ class ZipCodeRequest(object):
         valid request.
 
         Returns
-            zipcodes: a list of zipcodes returned fro the API
+            zipcodes: a list of zipcodes returned from the API
         """
         url = self.base.format(
             self.apikey,

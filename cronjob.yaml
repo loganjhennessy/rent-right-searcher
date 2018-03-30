@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rent-right-searcher
+spec:
+  template:
+    spec:
+      containers:
+      - name: rent-right-searcher
+        image: gcr.io/rent-right
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: config-volume
+          mountPath: /opt/searcher
+        - name: credentials-volume
+          mountPath: /opt/searcher
+      volumes:
+      - name: config-volume
+        configMap:
+          name: searcher-config
+      - name: credentials-volume
+        secret:
+          secretName: searcher-secret
+      restartPolicy: Never
+  backoffLimit: 4
