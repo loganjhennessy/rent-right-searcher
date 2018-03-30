@@ -12,7 +12,6 @@ class ZipCodeRequest(object):
         apikey: str containing Zip Code API key
         base: str containing base URL of Zip Code ZPI
         city: str of city to search for zips
-        form: str indicating format of return from API
         state: str of state to search for zips
     """
 
@@ -21,14 +20,12 @@ class ZipCodeRequest(object):
 
         apikey is set to value of ZIP_KEY environment variable
         base is hardcoded to Zip Code API URL
-        form is hardcoded to 'json'
         """
         self.apikey = os.environ['ZIP_KEY']
         self.base = (
-            'https://www.zipcodeapi.com/rest/{}/city-zips.{}/{}/{}'
+            'https://www.zipcodeapi.com/rest/{}/city-zips.json/{}/{}'
         )
         self.city = city
-        self.form = 'json'
         self.logger = get_configured_logger(__name__)
         self.state = state
 
@@ -47,7 +44,6 @@ class ZipCodeRequest(object):
         """
         url = self.base.format(
             self.apikey,
-            self.form,
             self.city,
             self.state
         )
