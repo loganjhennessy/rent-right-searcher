@@ -23,7 +23,7 @@ class CitySearch(object):
         zipcode: zip code for this search
     """
 
-    def __init__(self, city, zipcode, mongoclient):
+    def __init__(self, city, zipcode):
         """Init ZipCodeSearch object with city, zipcode, and mongoclient.
 
         base is set to value of BASE_URL environment variable
