@@ -7,7 +7,7 @@ import time
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from searcher.util.log import get_configured_logger
+from rentrightsearcher.util.log import get_configured_logger
 
 class CitySearch(object):
     """Implements a search for all rental listings by zip code.

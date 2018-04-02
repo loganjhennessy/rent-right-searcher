@@ -14,9 +14,9 @@ spec:
             imagePullPolicy: Always
             volumeMounts:
             - name: config-volume
-              mountPath: /opt/searcher/config
+              mountPath: /opt/rent-right-searcher/config
             - name: credentials-volume
-              mountPath: /opt/searcher/creds
+              mountPath: /opt/rent-right-searcher/creds
           volumes:
           - name: config-volume
             configMap:

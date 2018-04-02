@@ -2,7 +2,7 @@
 import os
 import requests
 
-from searcher.util.log import get_configured_logger
+from rentrightsearcher.util.log import get_configured_logger
 
 
 class ZipCodeRequest(object):
