@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: rent-right-searcher
 spec:
-  schedule: "*/5 * * * *"
+  schedule: "*/2 * * * *"
   jobTemplate:
     spec:
       template:
@@ -17,6 +17,12 @@ spec:
               mountPath: /opt/rent-right-searcher/config
             - name: credentials-volume
               mountPath: /opt/rent-right-searcher/creds
+            env:
+            - name: ZIP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zip-key-secret
+                  key: ZIPKEY
           volumes:
           - name: config-volume
             configMap:
