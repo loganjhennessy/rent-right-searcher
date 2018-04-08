@@ -223,6 +223,11 @@ class CitySearch(object):
         search_collection.insert_one(search)
 
 
+def get_search_results(city, zipcode):
+    citysearch = CitySearch(city, zipcode)
+    return citysearch.execute()
+
+
 if __name__ == '__main__':
     import sys
 
