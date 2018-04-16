@@ -6,11 +6,10 @@ import time
 
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-from google.cloud import datastore
 
 from rentrightsearcher.util.log import get_configured_logger
 
-class CitySearch(object):
+class ZipSearch(object):
     """Implements a search for all rental listings by zip code.
 
     Attributes:
@@ -53,15 +52,18 @@ class CitySearch(object):
             'Found {} results for this zip code'.format(count)
         )
 
+        listings = []
+
         if int(count) > 0:
-            listings = self._parse_results(content)
-            self._write_listings_to_datastore(listings)
+            listings.append(self._parse_results(content))
+            # self._write_listings_to_datastore(listings)
 
         for s in range(120, int(count), 120):
-            #time.sleep(self.sleepshort)
             content = self._search(str(s))
-            listings = self._parse_results(content, str(s))
-            self._write_listings_to_datastore(listings)
+            listings.append(self._parse_results(content, str(s)))
+            # self._write_listings_to_datastore(listings)
+
+        return listings
 
     def _count_results(self, content):
         """Return number of results found in content.
@@ -78,29 +80,6 @@ class CitySearch(object):
         if soup.select('.totalcount'):
             count = soup.select('.totalcount')[0].text
         return count
-
-    def _is_dup(self, listing):
-        """Check database for prior existence of listing.
-
-        Arguments:
-            listing: dict representing one listing record
-
-        Returns:
-            bool: True if listing exists in db, else False
-        """
-        # TODO: Figure out how to do  this with Datastore
-        scraper_db = self.mongoclient.scraper
-        query = {
-            "clid": listing['clid'],
-            "title": listing['title']
-        }
-        # self.logger.debug('Checking for duplicates')
-        listing_collection = scraper_db.listing
-
-        count = listing_collection.find(query, no_cursor_timeout=True).count()
-        # self.logger.debug('Found {} existing records like this'.format(count))
-
-        return count > 0
 
     def _parse_results(self, content, s='0'):
         """Parse results of a search for link and title.
@@ -174,43 +153,7 @@ class CitySearch(object):
                 self.logger.info('Retrying')
         return resp.content
 
-    def _write_listings_to_datastore(self, listings):
-        """Write a list of listing dicts to Datastore.
-
-        Data is written to the 'ObservedListing' kind.
-
-        Arguments:
-            listings: list of dicts containing listings
-        """
-        ds_client = datastore.Client()
-        kind = "ObservedListing"
-
-        new_count = 0
-        for listing in listings:
-            if self._is_dup(listing):
-                # TODO: Update the listing's "time_observed" field to now
-                pass
-            else:
-                name = listing["clid"]
-                key = ds_client.key(kind, name)
-
-                # TODO: Is there a way to pass a dict of params to datastore client instead of individually writing each one?
-                listing_entity = datastore.Entity(key=key)
-                listing_entity["content_acquited"] = listing["content_acquired"]
-                listing_entity["imgs_acquired"] = listing["imgs_acquired"]
-                listing_entity["link"] = listing["link"]
-                listing_entity["s"] = listing["s"]
-                listing_entity["time_added"] = listing["time_added"]
-                listing_entity["time_observed"] = listing["time_observed"]
-                listing_entity["title"] = listing["title"]
-                listing_entity["zipcode"] = listing["zipcode"]
-
-                ds_client.put(listing_entity)
-                new_count += 1
-
-        self.logger.info("Wrote {} new listings to Datastore".format(new_count))
-
 
 def get_search_results(city, zipcode):
-    citysearch = CitySearch(city, zipcode)
-    return citysearch.execute()
+    zipsearch = ZipSearch(city, zipcode)
+    return zipsearch.execute()

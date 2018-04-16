@@ -1,18 +1,21 @@
-import json
-import requests
-# import time
+import datetime
 
 from google.cloud import datastore
 from google.cloud import pubsub
-from rentrightsearcher.citysearch import get_search_results
+from rentrightsearcher.zipsearch import get_search_results
+from rentrightsearcher.util.log import get_configured_logger
+
+logger = get_configured_logger(__name__)
+
+ds_client = datastore.Client()
+publisher = pubsub.PublisherClient()
 
 
 def fetch_cities(client):
     cities = []
 
     # Query Datastore
-    client = datastore.Client()
-    query = client.query(kind="CityZipCodeMap")
+    query = ds_client.query(kind="CityZipCodeMap")
     for record in query.fetch():
         city = {
             "city": record["city"],
@@ -25,43 +28,56 @@ def fetch_cities(client):
 
 def publish_listing(listing):
     project_id = "rent-right-dev"
-    publisher = pubsub.PublisherClient()
-    topic = "projects/rent-right-dev/topics/listings"
+    topic = "projects/{}/topics/listings".format(project_id)
     publisher.publish(topic, listing.encode())
 
 
 def save_listing(listing):
-    pass
+    """Write a list of listing dicts to Datastore.
 
+    Data is written to the 'ObservedListing' kind.
 
-def update_listing(listing):
-    pass
+    Arguments:
+        listings: list of dicts containing listings
+    """
+    kind = "ObservedListing"
+
+    name = listing["clid"]
+    key = ds_client.key(kind, name)
+
+    listing_entity = datastore.Entity(key=key)
+    listing_entity["content_acquited"] = listing["content_acquired"]
+    listing_entity["imgs_acquired"] = listing["imgs_acquired"]
+    listing_entity["link"] = listing["link"]
+    listing_entity["s"] = listing["s"]
+    listing_entity["time_added"] = listing["time_added"]
+    listing_entity["time_observed"] = listing["time_observed"]
+    listing_entity["title"] = listing["title"]
+    listing_entity["zipcode"] = listing["zipcode"]
+
+    ds_client.put(listing_entity)
 
 
 def main():
-    ds_client = datastore.Client()
     query = ds_client.query(kind="CityZipCodeMap")
     cities = fetch_cities(ds_client)
 
-    # For each entry (city) in Datastore
     for city in cities:
-        # For each zip in each city
         for zipcode in city["zipcodes"]:
-            # Do a search using city/zip
             listings = get_search_results(city, zipcode)
-            # For each listing returned
+            count = 0
             for listing in listings:
                 ds_client.query("Listing")
-                query.add_filter("listing_id", "=", listing["id"])
-                # Check Datastore to see if it exists and has been processed
-                if query.fetch() is None:
-                    # Enter it in Datastore
+                query.add_filter("name", "=", listing["clid"])
+                dup_listing_entity = query.fetch()
+                if dup_listing_entity is None:
                     save_listing(listing)
-                    # Publish to pubsub
                     publish_listing(listing)
+                    count += 1
                 else:
-                    # Update the last_seen field
-                    update_listing(listing)
+                    dup_listing_entity["time_observed"] = datetime.datetime.utcnow()
+                    ds_client.put(dup_listing_entity)
+            logger.info("Wrote {} new listings to Datastore".format(count))
 
 
 if __name__ == "__main__":
