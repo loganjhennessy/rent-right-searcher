@@ -14,7 +14,6 @@ publisher = pubsub.PublisherClient()
 def fetch_cities(client):
     cities = []
 
-    # Query Datastore
     query = ds_client.query(kind="CityZipCodeMap")
     for record in query.fetch():
         city = {
@@ -64,7 +63,7 @@ def main():
 
     for city in cities:
         for zipcode in city["zipcodes"]:
-            listings = get_search_results(city, zipcode)
+            listings = get_search_results(city["city"], zipcode)
             count = 0
             for listing in listings:
                 ds_client.query("Listing")
