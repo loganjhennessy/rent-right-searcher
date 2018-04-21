@@ -54,14 +54,14 @@ class ZipSearch(object):
 
         listings = []
 
+        # This is only here so we don't search for the first 120 listings twice
         if int(count) > 0:
             listings.append(self._parse_results(content))
-            # self._write_listings_to_datastore(listings)
 
+        # The count has to run before this loop
         for s in range(120, int(count), 120):
             content = self._search(str(s))
             listings.append(self._parse_results(content, str(s)))
-            # self._write_listings_to_datastore(listings)
 
         return listings
 
