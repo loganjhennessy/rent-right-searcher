@@ -16,13 +16,13 @@ spec:
             - name: credentials-volume
               mountPath: /opt/rent-right-searcher/creds
             env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/opt/rent-right-searcher/creds/rent-right-dev.json"
             - name: BASE_URL
               valueFrom:
                 secretKeyRef:
                   name: base-url-secret
                   key: BASE_URL
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /opt/rent-right-searcher-creds/rent-right-dev.json
             - name: PROXY
               valueFrom:
                 secretKeyRef:
