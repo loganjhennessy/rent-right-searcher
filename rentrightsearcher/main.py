@@ -11,14 +11,14 @@ ds_client = datastore.Client()
 publisher = pubsub.PublisherClient()
 
 
-def fetch_cities(client):
+def fetch_cities(ds_client):
     cities = []
 
     query = ds_client.query(kind="CityZipCodeMap")
     for record in query.fetch():
         city = {
             "city": record["city"],
-            "status": record["state"],
+            "state": record["state"],
             "zipcodes": record["zipcodes"]
         }
         cities.append(city)
@@ -74,7 +74,7 @@ def main():
                     publish_listing(listing)
                     count += 1
                 else:
-                    dup_listing_entity["time_observed"] = datetime.datetime.utcnow()
+                    dup_listing_entity["time_observed"] = listing["time_observed"]
                     ds_client.put(dup_listing_entity)
             logger.info("Wrote {} new listings to Datastore".format(count))
 

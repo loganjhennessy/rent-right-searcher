@@ -46,7 +46,7 @@ class ZipSearch(object):
 
     def execute(self):
         """Executes a zip code search for rental properties."""
-        content = self._search()
+        content, request_time = self._search()
         count = self._count_results(content)
         self.logger.info(
             'Found {} results for this zip code'.format(count)
@@ -56,12 +56,12 @@ class ZipSearch(object):
 
         # This is only here so we don't search for the first 120 listings twice
         if int(count) > 0:
-            listings.append(self._parse_results(content))
+            listings.append(self._parse_results(content, request_time))
 
         # The count has to run before this loop
         for s in range(120, int(count), 120):
-            content = self._search(str(s))
-            listings.append(self._parse_results(content, str(s)))
+            content, request_time = self._search(str(s))
+            listings.append(self._parse_results(content, request_time, str(s)))
 
         return listings
 
@@ -81,7 +81,7 @@ class ZipSearch(object):
             count = soup.select('.totalcount')[0].text
         return count
 
-    def _parse_results(self, content, s='0'):
+    def _parse_results(self, content, request_time, s='0'):
         """Parse results of a search for link and title.
 
         Arguments:
@@ -102,7 +102,7 @@ class ZipSearch(object):
                 'link': title.attrs['href'],
                 's': s,
                 'time_added': datetime.datetime.utcnow(),
-                'time_observed': datetime.datetime.utcnow(),
+                'time_observed': request_time,
                 'title': title.text,
                 'zipcode': self.zipcode
             }
@@ -137,6 +137,7 @@ class ZipSearch(object):
                         params=params,
                         proxies=proxies
                        )
+                request_time = datetime.datetime.utcnow()
                 if resp.status_code != 200:
                     raise Exception(
                             'Response contained invalid '
@@ -151,7 +152,7 @@ class ZipSearch(object):
                 )
                 time.sleep(self.sleeplong)
                 self.logger.info('Retrying')
-        return resp.content
+        return resp.content, request_time
 
 
 def get_search_results(city, zipcode):
