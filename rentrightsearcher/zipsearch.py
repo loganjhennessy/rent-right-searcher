@@ -52,17 +52,19 @@ class ZipSearch(object):
             'Found {} results for this zip code'.format(count)
         )
 
-        listings = []
+        lists_of_listings = []
 
         # This is only here so we don't search for the first 120 listings twice
         if int(count) > 0:
-            listings.append(self._parse_results(content, request_time))
+            lists_of_listings.append(self._parse_results(content, request_time))
 
         # The count has to run before this loop
         for s in range(120, int(count), 120):
             content, request_time = self._search(str(s))
-            listings.append(self._parse_results(content, request_time, str(s)))
+            lists_of_listings.append(self._parse_results(content, request_time, str(s)))
 
+        # Flattens the list of listings
+        listings = [listing for list_of_listings in lists_of_listings for listing in list_of_listings]
         return listings
 
     def _count_results(self, content):

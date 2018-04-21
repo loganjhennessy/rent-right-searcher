@@ -66,7 +66,7 @@ def main():
             listings = get_search_results(city["city"], zipcode)
             count = 0
             for listing in listings:
-                ds_client.query("Listing")
+                ds_client.query(kind="Listing")
                 query.add_filter("name", "=", listing["clid"])
                 dup_listing_entity = query.fetch()
                 if dup_listing_entity is None:
