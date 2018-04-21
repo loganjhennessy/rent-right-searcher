@@ -9,7 +9,7 @@ from fake_useragent import UserAgent
 
 from rentrightsearcher.util.log import get_configured_logger
 
-class CitySearch(object):
+class ZipSearch(object):
     """Implements a search for all rental listings by zip code.
 
     Attributes:
@@ -22,7 +22,6 @@ class CitySearch(object):
         ua: UserAgent object to generate random user agents
         zipcode: zip code for this search
     """
-
     def __init__(self, city, zipcode):
         """Init ZipCodeSearch object with city, zipcode, and mongoclient.
 
@@ -33,7 +32,7 @@ class CitySearch(object):
         self.base = os.environ['BASE_URL']
         self.city = city.lower()
         self.logger = get_configured_logger(__name__)
-        self.proxy = os.environ['HTTP_PROXY']
+        self.proxy = os.environ['PROXY']
         self.sleeplong = 2
         self.sleepshort = 0.5
         self.ua = UserAgent()
@@ -47,25 +46,26 @@ class CitySearch(object):
 
     def execute(self):
         """Executes a zip code search for rental properties."""
-        results = []
-        content = self._search()
-        results.append(content)
-        count = self._countresults(content)
+        content, request_time = self._search()
+        count = self._count_results(content)
         self.logger.info(
             'Found {} results for this zip code'.format(count)
         )
 
+        listings = []
+
+        # This is only here so we don't search for the first 120 listings twice
         if int(count) > 0:
-            listings = self._parseresults(content)
-            self._writelistingstomongo(listings)
+            listings.append(self._parse_results(content, request_time))
 
+        # The count has to run before this loop
         for s in range(120, int(count), 120):
-            #time.sleep(self.sleepshort)
-            content = self._search(str(s))
-            listings = self._parseresults(content, str(s))
-            self._writelistingstomongo(listings)
+            content, request_time = self._search(str(s))
+            listings.append(self._parse_results(content, request_time, str(s)))
 
-    def _countresults(self, content):
+        return listings
+
+    def _count_results(self, content):
         """Return number of results found in content.
 
         Arguments:
@@ -81,29 +81,7 @@ class CitySearch(object):
             count = soup.select('.totalcount')[0].text
         return count
 
-    def _isdup(self, listing):
-        """Check database for prior existence of listing.
-
-        Arguments:
-            listing: dict representing one listing record
-
-        Returns:
-            bool: True if listing exists in db, else False
-        """
-        scraper_db = self.mongoclient.scraper
-        query = {
-            "clid": listing['clid'],
-            "title": listing['title']
-        }
-        # self.logger.debug('Checking for duplicates')
-        listing_collection = scraper_db.listing
-
-        count = listing_collection.find(query, no_cursor_timeout=True).count()
-        # self.logger.debug('Found {} existing records like this'.format(count))
-
-        return count > 0
-
-    def _parseresults(self, content, s='0'):
+    def _parse_results(self, content, request_time, s='0'):
         """Parse results of a search for link and title.
 
         Arguments:
@@ -115,8 +93,8 @@ class CitySearch(object):
         """
         listings = []
         soup = BeautifulSoup(content, 'html.parser')
-        resulttitles = soup.select('.result-title.hdrlnk')
-        for title in resulttitles:
+        result_titles = soup.select('.result-title.hdrlnk')
+        for title in result_titles:
             listing = {
                 'clid': title.attrs['data-id'],
                 'content_acquired': False,
@@ -124,7 +102,7 @@ class CitySearch(object):
                 'link': title.attrs['href'],
                 's': s,
                 'time_added': datetime.datetime.utcnow(),
-                'time_observed': datetime.datetime.utcnow(),
+                'time_observed': request_time,
                 'title': title.text,
                 'zipcode': self.zipcode
             }
@@ -159,6 +137,7 @@ class CitySearch(object):
                         params=params,
                         proxies=proxies
                        )
+                request_time = datetime.datetime.utcnow()
                 if resp.status_code != 200:
                     raise Exception(
                             'Response contained invalid '
@@ -173,66 +152,9 @@ class CitySearch(object):
                 )
                 time.sleep(self.sleeplong)
                 self.logger.info('Retrying')
-
-        search = {
-            'content': resp.content,
-            'headers': headers,
-            'params': params,
-            'proxies': proxies,
-            'time_searched': datetime.datetime.utcnow(),
-            'url': url
-        }
-        self._writesearchtomongo(search)
-        return resp.content
-
-    def _writelistingstomongo(self, listings):
-        """Write a list of listing dicts to mongoDB.
-
-        Data is written to the 'scraper' database in a collection named
-        'listings'.
-
-        Arguments:
-            listings: list of dicts containing listings
-        """
-        scraper_db = self.mongoclient.scraper
-        listing_collection = scraper_db.listing
-        new_count = 0
-        for listing in listings:
-            if self._isdup(listing):
-                query = {"_id": listing['clid']}
-                listing_collection.update_one(query, {
-                    "$set": {"time_observed": datetime.datetime.utcnow()}
-                })
-            else:
-                listing_collection.insert_one(listing)
-                new_count += 1
-
-        self.logger.info('Wrote {} new listings to MongoDB'.format(new_count))
-
-    def _writesearchtomongo(self, search):
-        """Write the results of a serach to mongoDB.
-
-        Data is written to the 'scraper' database in a collection named
-        'search'.
-
-        Arguments:
-            search: dict containing meta-information about a search.
-        """
-        scraper_db = self.mongoclient.scraper
-        search_collection = scraper_db.search
-        search_collection.insert_one(search)
+        return resp.content, request_time
 
 
 def get_search_results(city, zipcode):
-    citysearch = CitySearch(city, zipcode)
-    return citysearch.execute()
-
-
-if __name__ == '__main__':
-    import sys
-
-    from pymongo import MongoClient
-
-    mongoclient = MongoClient('localhost', 27017)
-    zipcodesearch = CitySearch(sys.argv[1], sys.argv[2], mongoclient)
-    zipcodesearch.execute()
+    zipsearch = ZipSearch(city, zipcode)
+    return zipsearch.execute()

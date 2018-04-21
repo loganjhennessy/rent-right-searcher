@@ -11,4 +11,4 @@ RUN pip3 install --upgrade pip
 RUN pip3 install -r /opt/rent-right-searcher/requirements.txt
 RUN pip3 install -e /opt/rent-right-searcher
 
-ENTRYPOINT ["python3","/opt/rent-right-searcher/rentrightsearcher/run.py"]
+ENTRYPOINT ["python3","/opt/rent-right-searcher/rentrightsearcher/main.py"]

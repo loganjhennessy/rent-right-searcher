@@ -43,7 +43,6 @@ ENV/
 
 # Credentials
 setup.sh
-zip-code-key.txt
 
 # Scripts directory
 scripts/
