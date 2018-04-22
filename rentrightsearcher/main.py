@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from google.cloud import datastore
 from google.cloud import pubsub
@@ -26,9 +27,13 @@ def fetch_cities(ds_client):
 
 
 def publish_listing(listing):
+    def date_converter(d):
+        if isinstance(d, datetime.datetime):
+            return d.__str__()
     project_id = "rent-right-dev"
     topic = "projects/{}/topics/listings".format(project_id)
-    publisher.publish(topic, listing.encode())
+    data = json.dumps(listing, default=date_converter).encode("utf-8")
+    publisher.publish(topic, data)
 
 
 def save_listing(listing):
@@ -39,7 +44,7 @@ def save_listing(listing):
     Arguments:
         listings: list of dicts containing listings
     """
-    kind = "ObservedListing"
+    kind = "ListingLink"
 
     name = listing["clid"]
     key = ds_client.key(kind, name)
@@ -58,7 +63,6 @@ def save_listing(listing):
 
 
 def main():
-    query = ds_client.query(kind="CityZipCodeMap")
     cities = fetch_cities(ds_client)
 
     for city in cities:
@@ -66,9 +70,8 @@ def main():
             listings = get_search_results(city["city"], zipcode)
             count = 0
             for listing in listings:
-                ds_client.query(kind="Listing")
-                query.add_filter("name", "=", listing["clid"])
-                dup_listing_entity = query.fetch()
+                key = ds_client.key("ListingLink", listing["clid"])
+                dup_listing_entity = ds_client.get(key)
                 if dup_listing_entity is None:
                     save_listing(listing)
                     publish_listing(listing)
