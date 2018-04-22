@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: rent-right-searcher
 spec:
-  schedule: "*/2 * * * *"
+  schedule: "0 7 * * *"
   jobTemplate:
     spec:
       template:
