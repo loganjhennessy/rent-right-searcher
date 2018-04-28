@@ -46,18 +46,11 @@ def save_listing(listing):
     """
     kind = "ListingLink"
 
-    name = listing["clid"]
+    name = listing.pop("id")
     key = ds_client.key(kind, name)
 
     listing_entity = datastore.Entity(key=key)
-    listing_entity["content_acquired"] = listing["content_acquired"]
-    listing_entity["imgs_acquired"] = listing["imgs_acquired"]
-    listing_entity["link"] = listing["link"]
-    listing_entity["s"] = listing["s"]
-    listing_entity["time_added"] = listing["time_added"]
-    listing_entity["time_observed"] = listing["time_observed"]
-    listing_entity["title"] = listing["title"]
-    listing_entity["zipcode"] = listing["zipcode"]
+    listing_entity.update(listing)
 
     ds_client.put(listing_entity)
 
