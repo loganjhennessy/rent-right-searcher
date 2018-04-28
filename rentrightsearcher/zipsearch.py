@@ -1,11 +1,13 @@
 """rentright.scraper.zipcodesearch"""
 import datetime
+import hashlib
 import os
 import requests
 import time
 
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+from google.cloud import datastore
 
 from rentrightsearcher.util.log import get_configured_logger
 
@@ -22,7 +24,7 @@ class ZipSearch(object):
         ua: UserAgent object to generate random user agents
         zipcode: zip code for this search
     """
-    def __init__(self, city, zipcode):
+    def __init__(self, city, state, zipcode):
         """Init ZipCodeSearch object with city, zipcode, and mongoclient.
 
         base is set to value of BASE_URL environment variable
@@ -30,13 +32,14 @@ class ZipSearch(object):
         logger is retrieved from get_configured_logger function
         """
         self.base = os.environ['BASE_URL']
-        self.city = city.lower()
+        self.city_metro = self._get_city_metro(city, state)
         self.logger = get_configured_logger(__name__)
-        self.proxy = os.environ['PROXY']
+        self.proxy = os.environ.get('PROXY')
         self.sleeplong = 2
         self.sleepshort = 0.5
         self.ua = UserAgent()
         self.zipcode = zipcode
+
 
         self.logger.info(
             'ZipCodeSearch initialized for zip code {}'.format(
@@ -83,6 +86,13 @@ class ZipSearch(object):
             count = soup.select('.totalcount')[0].text
         return count
 
+    def _get_city_metro(self, city, state):
+        city_state = "{}, {}".format(city.lower(), state.lower())
+        ds_client = datastore.Client()
+        city_key = ds_client.key("CityMetroMap", city_state)
+        city_entity = ds_client.get(city_key)
+        return city_entity["metro"]
+
     def _parse_results(self, content, request_time, s='0'):
         """Parse results of a search for link and title.
 
@@ -97,7 +107,11 @@ class ZipSearch(object):
         soup = BeautifulSoup(content, 'html.parser')
         result_titles = soup.select('.result-title.hdrlnk')
         for title in result_titles:
+            unique_string = \
+                title.attrs['data-id'] + title.text + self.cl_city
+            unique_identifier = hashlib.md5(unique_string.encode('utf-8'))
             listing = {
+                'id': unique_identifier,
                 'clid': title.attrs['data-id'],
                 'content_acquired': False,
                 'imgs_acquired': False,
@@ -123,23 +137,33 @@ class ZipSearch(object):
         Returns:
             str: content of the HTTP response
         """
-        url = self.base.format(self.city)
+        url = self.base.format(self.city_metro)
         headers = {'User-Agent': self.ua.random}
         params = {'postal': self.zipcode, 'availabilityMode': '0'}
-        proxies = {'http': self.proxy, 'https': self.proxy}
+
+        if self.proxy:
+            proxies = {'http': self.proxy, 'https': self.proxy}
 
         if s:
             params['s'] = s
 
         while True:
             try:
-                resp = requests.get(
+                if self.proxy:
+                    resp = requests.get(
+                            url,
+                            headers=headers,
+                            params=params,
+                            proxies=proxies
+                           )
+                    request_time = datetime.datetime.utcnow()
+                else:
+                    resp = requests.get(
                         url,
                         headers=headers,
-                        params=params,
-                        proxies=proxies
-                       )
-                request_time = datetime.datetime.utcnow()
+                        params=params
+                    )
+                    request_time = datetime.datetime.utcnow()
                 if resp.status_code != 200:
                     raise Exception(
                             'Response contained invalid '
