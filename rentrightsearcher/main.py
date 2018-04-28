@@ -39,14 +39,14 @@ def publish_listing(listing):
 def save_listing(listing):
     """Write a list of listing dicts to Datastore.
 
-    Data is written to the 'ObservedListing' kind.
+    Data is written to the 'ListingLink' kind.
 
-    Arguments:
-        listings: list of dicts containing listings
+    :param listings: list of dicts containing listings
+    :return:
     """
     kind = "ListingLink"
 
-    name = listing.pop("id")
+    name = listing["id"]
     key = ds_client.key(kind, name)
 
     listing_entity = datastore.Entity(key=key)
