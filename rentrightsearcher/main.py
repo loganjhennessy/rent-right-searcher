@@ -6,7 +6,7 @@ from google.cloud import pubsub
 from rentrightsearcher.zipsearch import get_search_results
 from rentrightsearcher.util.log import get_configured_logger
 
-logger = get_configured_logger(__name__)
+logger = get_configured_logger("rentrightsearcher.main")
 
 ds_client = datastore.Client()
 publisher = pubsub.PublisherClient()
@@ -50,7 +50,7 @@ def save_listing(listing):
     key = ds_client.key(kind, name)
 
     listing_entity = datastore.Entity(key=key)
-    listing_entity["content_acquited"] = listing["content_acquired"]
+    listing_entity["content_acquired"] = listing["content_acquired"]
     listing_entity["imgs_acquired"] = listing["imgs_acquired"]
     listing_entity["link"] = listing["link"]
     listing_entity["s"] = listing["s"]
@@ -64,10 +64,9 @@ def save_listing(listing):
 
 def main():
     cities = fetch_cities(ds_client)
-
     for city in cities:
         for zipcode in city["zipcodes"]:
-            listings = get_search_results(city["city"], zipcode)
+            listings = get_search_results(city["city"], city["state"], zipcode)
             count = 0
             for listing in listings:
                 key = ds_client.key("ListingLink", listing["clid"])
