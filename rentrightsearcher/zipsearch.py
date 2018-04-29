@@ -181,6 +181,6 @@ class ZipSearch(object):
         return resp.content, request_time
 
 
-def get_search_results(city, zipcode):
-    zipsearch = ZipSearch(city, zipcode)
+def get_search_results(city, state, zipcode):
+    zipsearch = ZipSearch(city, state, zipcode)
     return zipsearch.execute()
