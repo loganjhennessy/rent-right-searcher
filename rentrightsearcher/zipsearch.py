@@ -108,10 +108,10 @@ class ZipSearch(object):
         result_titles = soup.select('.result-title.hdrlnk')
         for title in result_titles:
             unique_string = \
-                title.attrs['data-id'] + title.text + self.cl_city
+                title.attrs['data-id'] + title.text + self.city_metro
             unique_identifier = hashlib.md5(unique_string.encode('utf-8'))
             listing = {
-                'id': unique_identifier,
+                'id': unique_identifier.hexdigest(),
                 'clid': title.attrs['data-id'],
                 'content_acquired': False,
                 'imgs_acquired': False,
@@ -140,30 +140,26 @@ class ZipSearch(object):
         url = self.base.format(self.city_metro)
         headers = {'User-Agent': self.ua.random}
         params = {'postal': self.zipcode, 'availabilityMode': '0'}
+        proxies = {'http': self.proxy, 'https': self.proxy}
 
-        if self.proxy:
-            proxies = {'http': self.proxy, 'https': self.proxy}
+        self.logger.info("Making request using URL: ".format(url))
+        self.logger.info("Headers: ")
+        self.logger.info(headers)
+        self.logger.info("Proxies: ")
+        self.logger.info(proxies)
 
         if s:
             params['s'] = s
 
         while True:
             try:
-                if self.proxy:
-                    resp = requests.get(
-                            url,
-                            headers=headers,
-                            params=params,
-                            proxies=proxies
-                           )
-                    request_time = datetime.datetime.utcnow()
-                else:
-                    resp = requests.get(
+                resp = requests.get(
                         url,
                         headers=headers,
-                        params=params
-                    )
-                    request_time = datetime.datetime.utcnow()
+                        params=params,
+                        proxies=proxies
+                       )
+                request_time = datetime.datetime.utcnow()
                 if resp.status_code != 200:
                     raise Exception(
                             'Response contained invalid '

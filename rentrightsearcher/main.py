@@ -62,7 +62,7 @@ def main():
             listings = get_search_results(city["city"], city["state"], zipcode)
             count = 0
             for listing in listings:
-                key = ds_client.key("ListingLink", listing["clid"])
+                key = ds_client.key("ListingLink", listing["id"])
                 dup_listing_entity = ds_client.get(key)
                 if dup_listing_entity is None:
                     save_listing(listing)
