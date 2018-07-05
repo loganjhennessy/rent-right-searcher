@@ -33,3 +33,4 @@ spec:
             secret:
               secretName: credentials-secret
           restartPolicy: Never
+      activeDeadlineSeconds: 600

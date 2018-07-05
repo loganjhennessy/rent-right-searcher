@@ -33,6 +33,7 @@ def publish_listing(listing):
     project_id = "rent-right-dev"
     topic = "projects/{}/topics/listings".format(project_id)
     data = json.dumps(listing, default=date_converter).encode("utf-8")
+    logger.info("Publishing to pubsub")
     publisher.publish(topic, data)
 
 
@@ -41,7 +42,7 @@ def save_listing(listing):
 
     Data is written to the 'ListingLink' kind.
 
-    :param listings: list of dicts containing listings
+    :param listing: list of dicts containing listings
     :return:
     """
     kind = "ListingLink"
@@ -52,6 +53,7 @@ def save_listing(listing):
     listing_entity = datastore.Entity(key=key)
     listing_entity.update(listing)
 
+    logger.info("Saving to datastore")
     ds_client.put(listing_entity)
 
 

@@ -143,10 +143,6 @@ class ZipSearch(object):
         proxies = {'http': self.proxy, 'https': self.proxy}
 
         self.logger.info("Making request using URL: ".format(url))
-        self.logger.info("Headers: ")
-        self.logger.info(headers)
-        self.logger.info("Proxies: ")
-        self.logger.info(proxies)
 
         if s:
             params['s'] = s
